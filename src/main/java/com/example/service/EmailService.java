@@ -1,5 +1,6 @@
 package com.example.service;
 
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.mail.SimpleMailMessage;
@@ -30,6 +31,7 @@ public class EmailService {
         sendEmail(toEmail, subject, message);
     }
 
+    @CircuitBreaker(name = "emailService", fallbackMethod = "sendEmailFallback")
     public void sendEmail(String toEmail, String subject, String message) {
         try {
             SimpleMailMessage mailMessage = new SimpleMailMessage();
@@ -44,5 +46,11 @@ public class EmailService {
             logger.error("Failed to send email to: {}", toEmail, e);
             throw new RuntimeException("Failed to send email", e);
         }
+    }
+
+    @SuppressWarnings("unused")
+    private void sendEmailFallback(String toEmail, String subject, String message, Throwable throwable) {
+        logger.error("Circuit breaker fallback triggered for email to: {}. Subject: {}. Reason: {}",
+                toEmail, subject, throwable.getMessage());
     }
 }
